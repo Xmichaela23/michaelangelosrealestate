@@ -4,5 +4,5 @@
 
 [[redirects]]
   from = "/_internal"
-  to = "/internal/"
+  to = "/internal/index.html"
   status = 200
