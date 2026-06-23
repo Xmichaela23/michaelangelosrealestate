@@ -1,0 +1,124 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+
+const notes = (await getCollection('notes')).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
+);
+
+const formatDate = (date: Date) =>
+  date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+---
+
+<Base
+  title="Notes — Michael Angelos"
+  description="Essays and notes on real estate, Los Angeles, and the path to your own home."
+  ogUrl="https://michaelangelos.realestate/notes/"
+>
+  <main class="feed">
+    <header class="feed-header">
+      <p class="feed-eyebrow">Notes</p>
+      <h1 class="feed-title">From Michael Angelos</h1>
+    </header>
+
+    <ul class="feed-list">
+      {
+        notes.map((note) => (
+          <li class="feed-item">
+            <a href={`/notes/${note.id}/`} class="feed-link">
+              <time class="feed-date" datetime={note.data.date.toISOString()}>
+                {formatDate(note.data.date)}
+              </time>
+              <h2 class="feed-item-title">{note.data.title}</h2>
+              <p class="feed-deck">{note.data.deck}</p>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </main>
+</Base>
+
+<style>
+  .feed {
+    max-width: 42rem;
+    margin: 0 auto;
+    padding: 4rem 1.5rem 5rem;
+  }
+
+  .feed-header {
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .feed-eyebrow {
+    font-family: var(--font-sans);
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--muted-light);
+    margin-bottom: 0.75rem;
+  }
+
+  .feed-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.75rem, 4vw, 2.25rem);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+
+  .feed-list {
+    list-style: none;
+  }
+
+  .feed-item {
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .feed-link {
+    display: block;
+    padding: 2rem 0;
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .feed-link:hover {
+    opacity: 0.72;
+  }
+
+  .feed-date {
+    display: block;
+    font-family: var(--font-sans);
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted-light);
+    margin-bottom: 0.625rem;
+  }
+
+  .feed-item-title {
+    font-family: var(--font-display);
+    font-size: 1.375rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+    margin-bottom: 0.5rem;
+  }
+
+  .feed-deck {
+    font-family: var(--font-serif);
+    font-size: 1.0625rem;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+</style>

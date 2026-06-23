@@ -1,0 +1,354 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+
+export async function getStaticPaths() {
+  const notes = await getCollection('notes');
+  return notes.map((note) => ({
+    params: { slug: note.id },
+    props: { note },
+  }));
+}
+
+const { note } = Astro.props;
+const { Content } = await render(note);
+
+const formatDate = (date: Date) =>
+  date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+const ogImage = note.data.ogImage ?? '/og.png';
+const ogUrl = `https://michaelangelos.realestate/notes/${note.id}/`;
+---
+
+<Base
+  title={`${note.data.title} — Michael Angelos`}
+  description={note.data.description}
+  ogImage={ogImage}
+  ogUrl={ogUrl}
+>
+  <div class="note-frame">
+    <div class="note-layout">
+      <aside class="note-rail">
+        <div class="note-rail-inner">
+          <img
+            class="note-portrait"
+            src="/portrait.jpg"
+            alt="Michael Angelos"
+            width="400"
+            height="500"
+          />
+          <img
+            class="note-logo"
+            src="/logo-white.png"
+            alt="The Sypek Group · Compass"
+            width="180"
+            height="40"
+          />
+          <p class="note-name">Michael Angelos</p>
+          <p class="note-role">Real Estate Agent · Los Angeles</p>
+          <a class="note-email" href="mailto:michael@michaelangelos.realestate">
+            michael@michaelangelos.realestate
+          </a>
+          <p class="note-dre">DRE #02283132</p>
+        </div>
+      </aside>
+
+      <article class="note-content">
+        <header class="note-header">
+          <p class="note-eyebrow">Note · {formatDate(note.data.date)}</p>
+          <h1 class="note-title">{note.data.title}</h1>
+          <p class="note-deck">{note.data.deck}</p>
+        </header>
+
+        <div class="note-body prose">
+          <Content />
+        </div>
+
+        <footer class="note-signoff">
+          <p class="note-signoff-text">Ready to talk about your next move?</p>
+          <a class="note-cta" href="mailto:michael@michaelangelos.realestate">
+            Get in touch
+          </a>
+        </footer>
+      </article>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .note-frame {
+    background: var(--bg-note-frame);
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 1.25rem;
+  }
+
+  .note-layout {
+    display: grid;
+    grid-template-columns: minmax(16rem, 22rem) 1fr;
+    max-width: 72rem;
+    margin: 0 auto;
+    min-height: calc(100vh - 2.5rem);
+    min-height: calc(100dvh - 2.5rem);
+    background: var(--bg);
+  }
+
+  .note-rail {
+    background: var(--ink);
+    color: var(--bg);
+    position: sticky;
+    top: 1.25rem;
+    align-self: start;
+    min-height: calc(100vh - 2.5rem);
+    min-height: calc(100dvh - 2.5rem);
+  }
+
+  .note-rail-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 2.5rem 1.5rem;
+  }
+
+  .note-portrait {
+    width: 7.5rem;
+    height: 7.5rem;
+    object-fit: cover;
+    border-radius: 50%;
+    margin-bottom: 1.75rem;
+  }
+
+  .note-logo {
+    width: auto;
+    height: 1.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .note-name {
+    font-family: var(--font-display);
+    font-size: 1.125rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    margin-bottom: 0.375rem;
+  }
+
+  .note-role {
+    font-family: var(--font-sans);
+    font-size: 0.5625rem;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted-mid);
+    margin-bottom: 1.25rem;
+  }
+
+  .note-email {
+    font-family: var(--font-serif);
+    font-size: 0.875rem;
+    font-weight: 300;
+    color: var(--bg);
+    text-decoration: none;
+    margin-bottom: 1.5rem;
+    opacity: 0.85;
+  }
+
+  .note-email:hover {
+    opacity: 1;
+    text-decoration: underline;
+  }
+
+  .note-dre {
+    font-family: var(--font-sans);
+    font-size: 0.5625rem;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted-light);
+    margin-top: auto;
+  }
+
+  .note-content {
+    padding: 3.5rem 3rem 4rem;
+    max-width: 40rem;
+  }
+
+  .note-eyebrow {
+    font-family: var(--font-sans);
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--muted-light);
+    margin-bottom: 1.25rem;
+  }
+
+  .note-title {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4.5vw, 3rem);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.08;
+    margin-bottom: 1.25rem;
+  }
+
+  .note-deck {
+    font-family: var(--font-serif);
+    font-size: 1.25rem;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--muted);
+    line-height: 1.55;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--hairline);
+    margin-bottom: 2rem;
+  }
+
+  .note-signoff {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--hairline);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .note-signoff-text {
+    font-family: var(--font-serif);
+    font-size: 1.0625rem;
+    font-weight: 400;
+    color: var(--muted);
+  }
+
+  .note-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    padding: 0.75rem 1.5rem;
+    font-family: var(--font-sans);
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--bg);
+    background: var(--ink);
+    border: 1px solid var(--ink);
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .note-cta:hover {
+    background: transparent;
+    color: var(--ink);
+  }
+
+  @media (max-width: 768px) {
+    .note-frame {
+      padding: 0;
+    }
+
+    .note-layout {
+      grid-template-columns: 1fr;
+      min-height: auto;
+    }
+
+    .note-rail {
+      position: relative;
+      top: auto;
+      min-height: auto;
+    }
+
+    .note-rail-inner {
+      padding: 2rem 1.25rem;
+    }
+
+    .note-dre {
+      margin-top: 1rem;
+    }
+
+    .note-content {
+      padding: 2rem 1.25rem 3rem;
+    }
+  }
+</style>
+
+<style is:global>
+  .prose {
+    font-family: var(--font-serif);
+    font-size: 1.0625rem;
+    font-weight: 300;
+    line-height: 1.75;
+    color: var(--ink);
+  }
+
+  .prose > :first-child {
+    margin-top: 0;
+  }
+
+  .prose > p:first-of-type::first-letter {
+    float: left;
+    font-family: var(--font-display);
+    font-size: 4.25rem;
+    font-weight: 400;
+    line-height: 0.78;
+    padding-right: 0.5rem;
+    padding-top: 0.15rem;
+    color: var(--ink);
+  }
+
+  .prose p {
+    margin-bottom: 1.25rem;
+  }
+
+  .prose .qsec {
+    display: grid;
+    gap: 0;
+    margin: 2.5rem 0;
+    border-top: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .prose .qsec-item {
+    display: grid;
+    grid-template-columns: 1fr 1.6fr;
+    gap: 1.5rem;
+    padding: 1.5rem 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .prose .qsec-item:last-child {
+    border-bottom: none;
+  }
+
+  .prose .qsec-q {
+    font-family: var(--font-sans);
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink);
+    line-height: 1.5;
+  }
+
+  .prose .qsec-a {
+    font-family: var(--font-serif);
+    font-size: 1rem;
+    font-weight: 300;
+    color: var(--muted);
+    line-height: 1.65;
+  }
+
+  @media (max-width: 640px) {
+    .prose .qsec-item {
+      grid-template-columns: 1fr;
+      gap: 0.5rem;
+    }
+  }
+</style>

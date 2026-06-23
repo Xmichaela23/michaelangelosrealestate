@@ -1,0 +1,13 @@
+:root {
+  --bg: #faf9f5;
+  --bg-note-frame: #f3f3f1;
+  --ink: #1a1a18;
+  --muted: #6e6e6e;
+  --muted-mid: #8a8a8a;
+  --muted-light: #9a9a9a;
+  --hairline: #eaeaea;
+
+  --font-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Montserrat', system-ui, sans-serif;
+  --font-display: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
