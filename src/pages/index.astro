@@ -5,14 +5,13 @@ const title = 'Michael Angelos';
 const description =
   'Real Estate Agent in Los Angeles. Call, text, or email Michael Angelos — The Sypek Group · Compass.';
 const phone = '3232528989';
-const phoneDisplay = '323.252.8989';
 const email = 'michael@michaelangelos.realestate';
 ---
 
 <Base title={title} description={description} ogUrl="https://michaelangelos.realestate/">
   <main class="card">
     <div class="card-portrait">
-      <img src="/portrait.jpg" alt="Michael Angelos" width="800" height="1000" loading="eager" />
+      <img src="/portrait.jpg" alt="Michael Angelos" width="864" height="1296" loading="eager" />
     </div>
 
     <div class="card-body">
@@ -22,7 +21,7 @@ const email = 'michael@michaelangelos.realestate';
           src="/logo-white.png"
           alt="The Sypek Group · Compass"
           width="220"
-          height="48"
+          height="31"
           loading="eager"
         />
 
@@ -52,10 +51,11 @@ const email = 'michael@michaelangelos.realestate';
     grid-template-columns: 1fr 1fr;
     min-height: 100vh;
     min-height: 100dvh;
+    background: var(--bg);
   }
 
   .card-portrait {
-    background: var(--ink);
+    background: var(--bg);
     overflow: hidden;
   }
 
@@ -148,7 +148,7 @@ const email = 'michael@michaelangelos.realestate';
   @media (max-width: 768px) {
     .card {
       grid-template-columns: 1fr;
-      grid-template-rows: 42vh auto;
+      grid-template-rows: min(52vh, 28rem) auto;
     }
 
     .card-body {
