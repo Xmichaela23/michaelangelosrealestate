@@ -3,7 +3,7 @@ title: "The freedom of a pain in the ass."
 deck: "What you think might be daunting, challenging, or just too scary could be your path to transcendence… or at the very least your own home."
 description: "What you think might be too scary could be your path to transcendence — or at the very least your own home. A note from Michael Angelos."
 date: 2026-06-20
-ogImage: "/anote/og.png"
+ogImage: "/og.png"
 ---
 
 Buying a home can feel like the biggest, scariest thing you've ever signed up for. The paperwork alone is enough to make you wonder if you should just keep renting forever. The inspections, the contingencies, the counteroffers — each one a small cliff you have to lean over and look down from.
