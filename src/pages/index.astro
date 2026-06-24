@@ -3,7 +3,7 @@ import Base from '../layouts/Base.astro';
 
 const title = 'Michael Angelos';
 const description =
-  'Real Estate Agent in Los Angeles. Call, text, or email Michael Angelos — The Sypek Group · Compass.';
+  'Real Estate Agent in Los Angeles. Text or email Michael Angelos — The Sypek Group · Compass.';
 const phone = '3232528989';
 const email = 'michael@michaelangelos.realestate';
 ---
@@ -29,7 +29,6 @@ const email = 'michael@michaelangelos.realestate';
         <p class="card-role">Real Estate Agent · Los Angeles</p>
 
         <div class="card-actions">
-          <a class="card-btn" href={`tel:+1${phone}`}>Call</a>
           <a class="card-btn" href={`sms:+1${phone}`}>Text</a>
           <a class="card-btn" href={`mailto:${email}`}>Email</a>
           <a
@@ -37,7 +36,7 @@ const email = 'michael@michaelangelos.realestate';
             href="/michael-angelos.vcf"
             download="Michael-Angelos.vcf"
           >
-            Save
+            Save contact
           </a>
         </div>
       </div>
@@ -136,13 +135,6 @@ const email = 'michael@michaelangelos.realestate';
 
   .card-btn-save {
     grid-column: 1 / -1;
-    background: var(--ink);
-    color: var(--bg);
-  }
-
-  .card-btn-save:hover {
-    background: transparent;
-    color: var(--ink);
   }
 
   @media (max-width: 768px) {
