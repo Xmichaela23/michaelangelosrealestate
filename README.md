@@ -41,4 +41,4 @@ Drop these files into `public/`:
 
 ## Deploy
 
-Pushes to `main` on GitHub trigger a Netlify build (`npm run build` → `dist/`).
+Pushes to `main` on GitHub trigger a Netlify build on the linked site (`npm run build` → `dist/`).
