@@ -4,7 +4,6 @@ import Base from '../layouts/Base.astro';
 const title = 'Michael Angelos';
 const description =
   'Real Estate Agent in Los Angeles. Text or email Michael Angelos — The Sypek Group · Compass.';
-const phone = '3232528989';
 const email = 'michael@michaelangelos.realestate';
 ---
 
@@ -27,17 +26,10 @@ const email = 'michael@michaelangelos.realestate';
 
         <h1 class="card-name"><span>Michael</span><span>Angelos</span></h1>
         <p class="card-role">Real Estate Agent · Los Angeles</p>
+        <p class="card-dre">CalDRE# 02283132</p>
 
         <div class="card-actions">
-          <a class="card-btn" href={`sms:+1${phone}`}>Text</a>
           <a class="card-btn" href={`mailto:${email}`}>Email</a>
-          <a
-            class="card-btn card-btn-save"
-            href="/michael-angelos.vcf"
-            download="Michael-Angelos.vcf"
-          >
-            Save contact
-          </a>
         </div>
       </div>
     </div>
@@ -113,12 +105,22 @@ const email = 'michael@michaelangelos.realestate';
     letter-spacing: 0.2em;
     text-transform: uppercase;
     color: var(--muted);
-    margin-bottom: 2.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .card-dre {
+    font-family: var(--font-sans);
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted-light);
+    margin-bottom: 2rem;
   }
 
   .card-actions {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 0.625rem;
   }
 
@@ -143,10 +145,6 @@ const email = 'michael@michaelangelos.realestate';
   .card-btn:hover {
     background: var(--ink);
     color: var(--bg);
-  }
-
-  .card-btn-save {
-    grid-column: 1 / -1;
   }
 
   @media (max-width: 768px) {
@@ -186,8 +184,12 @@ const email = 'michael@michaelangelos.realestate';
     }
 
     .card-role {
-      margin-bottom: 1rem;
+      margin-bottom: 0.375rem;
       letter-spacing: 0.18em;
+    }
+
+    .card-dre {
+      margin-bottom: 1rem;
     }
 
     .card-actions {
