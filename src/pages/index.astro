@@ -4,6 +4,7 @@ import Base from '../layouts/Base.astro';
 const title = 'Michael Angelos';
 const description =
   'Real Estate Agent in Los Angeles. Text or email Michael Angelos — The Sypek Group · Compass.';
+const phone = '3232528989';
 const email = 'michael@michaelangelos.realestate';
 ---
 
@@ -29,7 +30,15 @@ const email = 'michael@michaelangelos.realestate';
         <p class="card-dre">CalDRE# 02283132</p>
 
         <div class="card-actions">
+          <a class="card-btn" href={`sms:+1${phone}`}>Text</a>
           <a class="card-btn" href={`mailto:${email}`}>Email</a>
+          <a
+            class="card-btn card-btn-save"
+            href="/michael-angelos.vcf"
+            download="Michael-Angelos.vcf"
+          >
+            Save contact
+          </a>
         </div>
       </div>
     </div>
@@ -115,13 +124,17 @@ const email = 'michael@michaelangelos.realestate';
     letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--muted-light);
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
   }
 
   .card-actions {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: 0.625rem;
+  }
+
+  .card-btn-save {
+    grid-column: 1 / -1;
   }
 
   .card-btn {
