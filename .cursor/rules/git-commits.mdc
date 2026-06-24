@@ -1,0 +1,9 @@
+# Git commits
+
+Never add `Co-authored-by: Cursor` or any co-author trailer to commits. Netlify blocks builds from commits with unrecognized contributors on private repos.
+
+All commits must be authored and committed solely as:
+- Name: Xmichael23
+- Email: 217672552+Xmichaela23@users.noreply.github.com
+
+If using git from the agent, use `git commit-tree` (not `git commit`) to avoid tooling that injects co-author trailers.
