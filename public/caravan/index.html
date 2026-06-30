@@ -153,12 +153,9 @@
 
 <!-- SETUP -->
 <section class="setup hidden" id="setup">
-  <h1>Caravan setup</h1>
-  <p>One-time setup on this device. Paste your Google Maps API key (with the Maps JavaScript API + Geocoding API enabled) and set your driving start point. Nothing is sent anywhere except Google for geocoding.</p>
-  <label for="s-key">Google Maps API key</label>
-  <input id="s-key" placeholder="AIza…" autocomplete="off" spellcheck="false">
-  <div class="hint">Stored only in this browser. Restrict it by HTTP referrer in the Google Cloud console.</div>
-  <label for="s-start">Driving start point</label>
+  <h1>Driving start point</h1>
+  <p>Set where your caravan drive begins. The route is ordered outward from here.</p>
+  <label for="s-start">Start point</label>
   <input id="s-start" placeholder="Highland Park, Los Angeles, CA" value="Highland Park, Los Angeles, CA">
   <button id="s-save">Save & continue</button>
 </section>
@@ -226,7 +223,9 @@ const CFG_KEY="caravan_cfg", MARK_KEY="caravan_marks", DATA_KEY="caravan_data", 
 const getJSON=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d;}catch(e){return d;}};
 const setJSON=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}};
 
-let cfg=getJSON(CFG_KEY,null);
+const GMAPS_KEY="AIzaSyC04hFQOs6pX1Wkh7_cotUg092DfwSdi5Y";
+let cfg=getJSON(CFG_KEY,null) || {key:GMAPS_KEY, start:"Highland Park, Los Angeles, CA"};
+cfg.key=GMAPS_KEY; setJSON(CFG_KEY,cfg);
 let marks=getJSON(MARK_KEY,{});      // { mls: {status,keep,note,deleted} }
 let geoCache=getJSON(GEO_KEY,{});    // { addressKey: {lat,lng,hood} }
 let listings=getJSON(DATA_KEY,{}).listings||[];
@@ -530,23 +529,23 @@ function weekOf(mmddyyyy){ // Monday of that week, returned MM/DD
 function showSetup(prefill){
   document.getElementById("app").classList.add("hidden");
   const s=document.getElementById("setup"); s.classList.remove("hidden");
-  if(prefill&&cfg){ document.getElementById("s-key").value=cfg.key||""; document.getElementById("s-start").value=cfg.start||""; }
+  if(prefill&&cfg){ document.getElementById("s-start").value=cfg.start||""; }
 }
 function showApp(){ document.getElementById("setup").classList.add("hidden"); document.getElementById("app").classList.remove("hidden"); }
 document.getElementById("s-save").addEventListener("click",()=>{
-  const key=document.getElementById("s-key").value.trim();
   const start=document.getElementById("s-start").value.trim()||"Highland Park, Los Angeles, CA";
-  if(!key){ alert("Paste your Google Maps API key first."); return; }
-  const changedKey=!cfg||cfg.key!==key, changedStart=!cfg||cfg.start!==start;
-  cfg={key,start}; setJSON(CFG_KEY,cfg); gmapsReady=null;
+  const changedStart=cfg.start!==start;
+  cfg={key:GMAPS_KEY,start}; setJSON(CFG_KEY,cfg);
   showApp();
-  if((changedStart)&&listings.length){ // re-geocode start + re-route
+  if(changedStart&&listings.length){ // re-geocode start + re-route
     (async()=>{ showProgress("Recomputing route…"); await geocodeAll(); showProgress(""); render(); })();
   } else render();
 });
 
 /* ---------- boot ---------- */
-if(!cfg){ showSetup(false); } else { showApp(); if(meta&&meta.date) document.getElementById("dateline").textContent=("Mon "+meta.date+" · ")+listings.length+" properties"; render(); }
+showApp();
+if(meta&&meta.date) document.getElementById("dateline").textContent=("Mon "+meta.date+" · ")+listings.length+" properties";
+render();
 </script>
 </body>
 </html>
