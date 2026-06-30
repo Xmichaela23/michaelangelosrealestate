@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Caravan — Open House Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#fcfcfd; --card:#ffffff; --ink:#1a1a18; --mute:#8a8a8a; --mute2:#6e6e6e;
+    --line:#eaeaea; --accent:#1f4e46; --seen:#3f6b4a; --pass:#a84a3c; --keep:#b9892f;
+    --shadow:0 1px 0 rgba(26,26,24,.03);
+    --serif:"Newsreader",Georgia,serif;
+    --mono:"Spline Sans Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+    font-size:15px;line-height:1.45}
+  .wrap{max-width:820px;margin:0 auto;padding:0 16px 90px}
+  a{color:inherit}
+
+  /* ---- setup ---- */
+  .setup{max-width:520px;margin:60px auto;padding:0 18px}
+  .setup h1{font-family:var(--serif);font-weight:500;font-size:28px;margin:0 0 6px}
+  .setup p{color:var(--mute2);font-size:14px;margin:0 0 18px;line-height:1.5}
+  .setup label{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--mute);margin:16px 0 6px}
+  .setup input{width:100%;font-family:var(--sans);font-size:14px;border:1px solid var(--line);
+    border-radius:8px;padding:11px 12px;background:#fff}
+  .setup .hint{font-size:12px;color:var(--mute);margin-top:6px;font-family:var(--mono)}
+  .setup button{margin-top:22px;font-family:var(--mono);font-size:13px;border:1px solid var(--accent);
+    background:var(--accent);color:#fff;padding:11px 18px;border-radius:8px;cursor:pointer}
+
+  /* ---- header ---- */
+  header.top{padding:26px 0 10px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--mute);margin:0 0 6px}
+  h1.title{font-family:var(--serif);font-weight:500;font-size:30px;line-height:1.05;
+    margin:0 0 4px;letter-spacing:-.01em}
+  .dateline{font-family:var(--mono);font-size:12.5px;color:var(--mute);margin:0}
+  .counts{display:flex;gap:18px;margin:16px 0 4px;flex-wrap:wrap}
+  .counts b{font-family:var(--mono);font-weight:600;font-size:20px;color:var(--ink);
+    display:block;line-height:1}
+  .counts span{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--mute)}
+
+  /* ---- drop / upload ---- */
+  .drop{border:1.5px dashed var(--line);border-radius:12px;padding:26px;text-align:center;
+    margin:18px 0;background:var(--card);cursor:pointer;transition:border-color .15s,background .15s}
+  .drop:hover,.drop.over{border-color:var(--accent);background:#f6faf8}
+  .drop b{font-family:var(--serif);font-weight:500;font-size:17px;display:block;margin-bottom:4px}
+  .drop span{font-family:var(--mono);font-size:12px;color:var(--mute)}
+  .progress{font-family:var(--mono);font-size:12px;color:var(--accent);margin:10px 0 0;display:none}
+  .progress.show{display:block}
+
+  /* ---- toolbar ---- */
+  .bar{position:sticky;top:0;z-index:20;background:rgba(252,252,253,.92);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:10px 0;margin-top:6px}
+  .bar-in{max-width:820px;margin:0 auto;padding:0 16px;display:flex;gap:8px;
+    align-items:center;flex-wrap:wrap}
+  .filters,.sorts{display:flex;gap:6px;flex-wrap:wrap}
+  .fchip{font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;
+    border:1px solid var(--line);background:var(--card);color:#4a463e;
+    padding:5px 11px;border-radius:20px;cursor:pointer;line-height:1.3}
+  .fchip[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .bar-actions{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+  .btn{font-family:var(--mono);font-size:11.5px;border:1px solid var(--line);
+    background:var(--card);color:#4a463e;padding:5px 11px;border-radius:7px;cursor:pointer}
+  .btn:hover{border-color:#cfcabf}
+  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+  /* ---- sections ---- */
+  .hood{display:flex;align-items:baseline;gap:10px;margin:30px 0 10px;
+    border-bottom:1px solid var(--ink);padding-bottom:6px}
+  .hood .num{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent)}
+  .hood h2{font-family:var(--serif);font-weight:500;font-size:18px;margin:0;letter-spacing:.01em}
+  .hood .cnt{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--mute)}
+
+  /* ---- card ---- */
+  .card{position:relative;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;padding:14px 15px;margin:9px 0;box-shadow:var(--shadow);
+    transition:opacity .2s,filter .2s}
+  .card.pass{opacity:.5;filter:grayscale(.5)}
+  .row1{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+  .addr{font-family:var(--serif);font-weight:600;font-size:18px;line-height:1.15;letter-spacing:-.01em}
+  .price{font-family:var(--mono);font-weight:600;font-size:16px;white-space:nowrap}
+  .type{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.08em;
+    padding:2px 7px;border-radius:4px;border:1px solid;margin-right:8px;vertical-align:1px}
+  .type.sfr{color:var(--seen);border-color:#bcd0bf;background:#f0f5f0}
+  .type.condo{color:#8a5a1f;border-color:#e3d2b8;background:#f8f1e6}
+  .type.inc{color:#41607a;border-color:#c6d4de;background:#eef3f7}
+  .meta{font-family:var(--mono);font-size:12.5px;color:#3d3a33;margin-top:5px}
+  .sub{font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:4px}
+  .oh{display:inline-block;background:#eef3ef;color:var(--seen);border-radius:5px;
+    padding:1px 7px;font-weight:500}
+  .oh.eve{background:#fbf1ef;color:var(--pass)}
+  .flag{color:var(--pass);font-weight:500}
+
+  .stamp{position:absolute;top:12px;right:14px;font-family:var(--mono);font-weight:600;
+    font-size:13px;letter-spacing:.14em;padding:3px 9px;border:2px solid;border-radius:5px;
+    transform:rotate(-7deg);opacity:0;pointer-events:none;transition:opacity .15s}
+  .card.seen .stamp.s-seen{opacity:.85;color:var(--seen);border-color:var(--seen)}
+  .card.pass .stamp.s-pass{opacity:.8;color:var(--pass);border-color:var(--pass)}
+
+  .ctrls{display:flex;align-items:center;gap:6px;margin-top:11px;flex-wrap:wrap}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+  .seg button{font-family:var(--mono);font-size:11px;letter-spacing:.03em;border:0;
+    background:#fff;color:#4a463e;padding:5px 10px;cursor:pointer;border-right:1px solid var(--line)}
+  .seg button:last-child{border-right:0}
+  .seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+  .seg button.b-seen[aria-pressed="true"]{background:var(--seen)}
+  .seg button.b-pass[aria-pressed="true"]{background:var(--pass)}
+  .star{font-size:17px;line-height:1;background:none;border:0;cursor:pointer;color:var(--line);padding:2px 4px}
+  .star.on{color:var(--keep)}
+  .link{font-family:var(--mono);font-size:11px;text-decoration:none;color:var(--accent);
+    border:1px solid #c9dcd6;background:#eef4f2;padding:5px 9px;border-radius:7px}
+  .link:hover{background:#e2eeea}
+  .del{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--mute);
+    background:none;border:0;cursor:pointer;padding:5px}
+  .del:hover{color:var(--pass)}
+  .note{margin-top:9px}
+  .note textarea{width:100%;font-family:var(--sans);font-size:13.5px;line-height:1.4;
+    border:1px solid var(--line);border-radius:7px;padding:8px 10px;background:#fff;
+    resize:none;min-height:38px;overflow:hidden;color:var(--ink)}
+  .note textarea::placeholder{color:#b8b3a8}
+  .note textarea:focus{outline:2px solid #cfe0d9;border-color:#cfe0d9}
+
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;font-family:var(--mono);font-size:12.5px;
+    padding:10px 14px;border-radius:9px;display:flex;gap:14px;align-items:center;
+    opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+  .toast button{background:none;border:0;color:#ffd9a0;font-family:var(--mono);font-size:12.5px;cursor:pointer;font-weight:600}
+
+  .empty{font-family:var(--mono);font-size:13px;color:var(--mute);text-align:center;padding:40px 0}
+  footer{margin-top:40px;font-family:var(--mono);font-size:10.5px;color:var(--mute);
+    line-height:1.6;border-top:1px solid var(--line);padding-top:14px}
+  .hidden{display:none!important}
+
+  @media (max-width:560px){
+    h1.title{font-size:25px}
+    .bar-actions{margin-left:0;width:100%}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<section class="setup hidden" id="setup">
+  <h1>Caravan setup</h1>
+  <p>One-time setup on this device. Paste your Google Maps API key (with the Maps JavaScript API + Geocoding API enabled) and set your driving start point. Nothing is sent anywhere except Google for geocoding.</p>
+  <label for="s-key">Google Maps API key</label>
+  <input id="s-key" placeholder="AIza…" autocomplete="off" spellcheck="false">
+  <div class="hint">Stored only in this browser. Restrict it by HTTP referrer in the Google Cloud console.</div>
+  <label for="s-start">Driving start point</label>
+  <input id="s-start" placeholder="Highland Park, Los Angeles, CA" value="Highland Park, Los Angeles, CA">
+  <button id="s-save">Save & continue</button>
+</section>
+
+<!-- APP -->
+<div class="wrap hidden" id="app">
+  <header class="top">
+    <p class="eyebrow">NELA Field Log · Compass</p>
+    <h1 class="title">Open House Caravan</h1>
+    <p class="dateline" id="dateline">Upload a TheMLS one-line PDF to begin.</p>
+    <div class="counts">
+      <div><b id="c-tosee">0</b><span>To see</span></div>
+      <div><b id="c-seen">0</b><span>Seen</span></div>
+      <div><b id="c-keep">0</b><span>Keep</span></div>
+      <div><b id="c-pass">0</b><span>Passed</span></div>
+    </div>
+  </header>
+
+  <div class="drop" id="drop">
+    <b>Drop a TheMLS one-line PDF here</b>
+    <span>or tap to choose a file</span>
+    <input type="file" id="file" accept="application/pdf" class="hidden">
+    <p class="progress" id="progress"></p>
+  </div>
+
+  <div class="bar">
+    <div class="bar-in">
+      <div class="filters" id="filters">
+        <button class="fchip" data-f="all" aria-pressed="true">All</button>
+        <button class="fchip" data-f="tosee" aria-pressed="false">To see</button>
+        <button class="fchip" data-f="seen" aria-pressed="false">Seen</button>
+        <button class="fchip" data-f="keep" aria-pressed="false">Keep ★</button>
+        <button class="fchip" data-f="pass" aria-pressed="false">Passed</button>
+      </div>
+      <div class="bar-actions">
+        <div class="sorts" id="sorts">
+          <button class="fchip" data-s="route" aria-pressed="true">Route</button>
+          <button class="fchip" data-s="priceDesc" aria-pressed="false">Price ↓</button>
+          <button class="fchip" data-s="priceAsc" aria-pressed="false">Price ↑</button>
+        </div>
+        <button class="btn" id="copyBtn">Copy summary</button>
+        <button class="btn" id="settingsBtn">Settings</button>
+        <button class="btn" id="resetBtn">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <main id="list"></main>
+
+  <footer>
+    Michael Angelos · CalDRE# 02283132 · The Sypek Group at Compass<br>
+    Source: TheMLS / VestaPLUS one-line. Neighborhoods via Google geocoding; condo/TIC status, sqft &amp; lot are estimates — verify against listing remarks.
+  </footer>
+</div>
+
+<div class="toast" id="toast"><span id="toastMsg"></span><button id="toastUndo">Undo</button></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+"use strict";
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+/* ---------- config + storage ---------- */
+const CFG_KEY="caravan_cfg", MARK_KEY="caravan_marks", DATA_KEY="caravan_data", GEO_KEY="caravan_geo";
+const getJSON=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d;}catch(e){return d;}};
+const setJSON=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}};
+
+let cfg=getJSON(CFG_KEY,null);
+let marks=getJSON(MARK_KEY,{});      // { mls: {status,keep,note,deleted} }
+let geoCache=getJSON(GEO_KEY,{});    // { addressKey: {lat,lng,hood} }
+let listings=getJSON(DATA_KEY,{}).listings||[];
+let meta=getJSON(DATA_KEY,{}).meta||{};
+let filter="all", sortMode="route";
+
+/* ---------- helpers ---------- */
+const usd=n=>"$"+Math.round(n).toLocaleString("en-US");
+const enc=encodeURIComponent;
+const mapURL=l=>"https://www.google.com/maps/search/?api=1&query="+enc(l.addr+" "+(l.city||"Los Angeles")+" CA");
+const mlsURL=l=>"https://www.google.com/search?q="+enc(l.mls+" "+l.addr+" Los Angeles");
+const rec=mls=>{ if(!marks[mls]) marks[mls]={status:"tosee",note:"",keep:false,deleted:false}; return marks[mls]; };
+const saveMarks=()=>setJSON(MARK_KEY,marks);
+const saveData=()=>setJSON(DATA_KEY,{listings,meta});
+const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
+
+/* ---------- PDF PARSING ---------- */
+async function pdfToText(buf){
+  const doc=await pdfjsLib.getDocument({data:buf}).promise;
+  let out="";
+  for(let p=1;p<=doc.numPages;p++){
+    const page=await doc.getPage(p);
+    const tc=await page.getTextContent();
+    out+=" "+tc.items.map(i=>i.str).join(" ");
+  }
+  return out.replace(/\s+/g," ").trim();
+}
+
+const TYPE_MAP={ "C/C":"CONDO", "INC":"INC", "SFR":"SFR", "2/4":"INC" };
+function typeInfo(raw){
+  const t=TYPE_MAP[raw]||raw;
+  if(t==="CONDO") return {cls:"condo",label:"CONDO · verify TIC",key:"CONDO"};
+  if(t==="INC")   return {cls:"inc",  label:"2–4 UNIT",        key:"INC"};
+  return {cls:"sfr",label:"SFR",key:"SFR"};
+}
+function fmtTime(t){ return (t||"").replace(/(AM|PM)/g,"").trim(); }
+function isEve(t1){ const m=/(\d+):\d+(AM|PM)/.exec(t1||""); if(!m) return false; let h=+m[1]; if(m[2]==="PM"&&h!==12)h+=12; return h>=16; }
+
+function parseListings(text){
+  // # date (t1- t2) MLS AR TYPE S Address+City BR BA (F H T Q) SqFt $ppsf $price [$hod] [lot] YB DOM
+  const re=/(\d{1,3})\s+(?:(\d{2}\/\d{2}\/\d{4})\s*\(\s*([0-9:APM]+)\s*-\s*([0-9:APM]+)\s*\)\s*)?(P\d-\s*\d+[A-Z0-9]*|\d{7,9})\s+(\d+)\s+(C\/C|SFR|INC|2\/4)\s+([A-Z])\s+(.+?)\s+(\d+)\s+(\d+\.\d{2})\s+\(\s*\d+\s+\d+\s+\d+\s+\d+\s*\)\s+(\d+)\s+\$([\d,]+\.\d{2})\s+\$([\d,]+)\s*(?:\$([\d,]+\.\d{2}))?\s*(\d+)?\s+(\d{4})\s+(\d+)/g;
+  const out=[]; let m;
+  while((m=re.exec(text))){
+    const [,seq,date,t1,t2,mlsRaw,ar,typeRaw,,addrCity,br,ba,sqft,ppsf,price,hod,lot,yb,dom]=m;
+    const mls=mlsRaw.replace(/\s+/g,"");
+    // split city off the end of addr+city
+    let chunk=addrCity.trim(), city="Los Angeles", addr=chunk;
+    const cm=/^(.*?)[ ]+(LOS ANGELES|Los Angeles|EL SERENO|El Sereno|[A-Z][a-z]+(?: [A-Z][a-z]+)?)$/.exec(chunk);
+    if(cm){ addr=cm[1].trim(); city=cm[2].replace(/\b\w+/g,w=>w[0].toUpperCase()+w.slice(1).toLowerCase()); }
+    out.push({
+      seq:+seq, mls, ar, addr, city,
+      type:typeRaw, oh:(t1&&t2)?(fmtTime(t1)+"–"+fmtTime(t2)):"", eve:isEve(t1),
+      date:date||"", br:+br, ba:parseFloat(ba),
+      sqft:+sqft, ppsf:Math.round(parseFloat(ppsf.replace(/,/g,""))),
+      price:parseInt(price.replace(/,/g,"")),
+      hoa:hod?parseFloat(hod.replace(/,/g,"")):0,
+      lot:lot?+lot:0, yb:+yb, dom:+dom,
+      noOH:!(t1&&t2)
+    });
+  }
+  // flag double-listings (same address appears more than once)
+  const byAddr={};
+  out.forEach(l=>{ const k=l.addr.toLowerCase().replace(/\s+/g," "); (byAddr[k]??=[]).push(l); });
+  Object.values(byAddr).forEach(g=>{ if(g.length>1) g.forEach(l=>l.dbl=true); });
+  return out;
+}
+
+/* ---------- GOOGLE MAPS ---------- */
+let gmapsReady=null;
+function loadGoogle(){
+  if(gmapsReady) return gmapsReady;
+  gmapsReady=new Promise((res,rej)=>{
+    window.__gmReady=()=>res();
+    const s=document.createElement("script");
+    s.src="https://maps.googleapis.com/maps/api/js?key="+enc(cfg.key)+"&libraries=geometry&loading=async&callback=__gmReady";
+    s.async=true; s.onerror=()=>rej(new Error("Failed to load Google Maps — check the API key."));
+    document.head.appendChild(s);
+  });
+  return gmapsReady;
+}
+function geocodeOne(geocoder,address){
+  return new Promise(res=>{
+    geocoder.geocode({address},(r,status)=>{
+      if(status==="OK"&&r[0]){
+        const loc=r[0].geometry.location, comps=r[0].address_components;
+        const find=t=>{const c=comps.find(c=>c.types.includes(t));return c&&c.long_name;};
+        const hood=find("neighborhood")||find("sublocality_level_1")||find("sublocality")||find("locality")||"Other";
+        res({lat:loc.lat(),lng:loc.lng(),hood,status:"OK"});
+      } else res({status});
+    });
+  });
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+async function geocodeAll(){
+  await loadGoogle();
+  const geocoder=new google.maps.Geocoder();
+  // start point
+  const startKey="__start::"+cfg.start.toLowerCase();
+  if(!geoCache[startKey]){ const g=await geocodeOne(geocoder,cfg.start); if(g.status==="OK") geoCache[startKey]=g; }
+  meta.start=geoCache[startKey]||null;
+
+  let done=0;
+  for(const l of listings){
+    const key=(l.addr+" "+l.city+" CA").toLowerCase().replace(/\s+/g," ");
+    if(geoCache[key]&&geoCache[key].status==="OK"){
+      Object.assign(l,{lat:geoCache[key].lat,lng:geoCache[key].lng,hood:geoCache[key].hood});
+    } else {
+      let g, tries=0;
+      do{ g=await geocodeOne(geocoder,l.addr+", "+l.city+", CA"); if(g.status==="OVER_QUERY_LIMIT"){await sleep(800*(++tries));} }
+      while(g.status==="OVER_QUERY_LIMIT"&&tries<4);
+      if(g.status==="OK"){ geoCache[key]=g; Object.assign(l,{lat:g.lat,lng:g.lng,hood:g.hood}); }
+      else { l.hood="Unmapped"; }
+      await sleep(110);
+    }
+    done++; showProgress(`Geocoding ${done}/${listings.length}…`);
+  }
+  setJSON(GEO_KEY,geoCache);
+  saveData();
+}
+
+/* ---------- ROUTE ORDERING ---------- */
+const dist=(a,b)=>google.maps.geometry.spherical.computeDistanceBetween(
+  new google.maps.LatLng(a.lat,a.lng), new google.maps.LatLng(b.lat,b.lng));
+
+function buildGroups(items){
+  const byHood={};
+  items.forEach(l=>{ const h=l.hood||"Unmapped"; (byHood[h]??=[]).push(l); });
+  const start=meta.start;
+  let groups=Object.keys(byHood).map(h=>{
+    const pts=byHood[h].filter(l=>l.lat!=null);
+    const c=pts.length?{lat:avg(pts.map(p=>p.lat)),lng:avg(pts.map(p=>p.lng))}:null;
+    return {hood:h,centroid:c,items:byHood[h]};
+  });
+
+  if(sortMode!=="route"||!start){
+    // alpha-ish stable order; sort items by price
+    groups.sort((a,b)=>a.hood.localeCompare(b.hood));
+    groups.forEach(g=>g.items.sort((a,b)=>sortMode==="priceAsc"?a.price-b.price:b.price-a.price));
+    return groups;
+  }
+
+  // route: order hoods greedily from start, then items greedily within
+  const ordered=[]; let cur=start; const pool=groups.filter(g=>g.centroid);
+  const noloc=groups.filter(g=>!g.centroid);
+  while(pool.length){ pool.sort((a,b)=>dist(cur,a.centroid)-dist(cur,b.centroid)); const n=pool.shift(); ordered.push(n); cur=n.centroid; }
+  let prev=start;
+  ordered.forEach(g=>{
+    const located=g.items.filter(l=>l.lat!=null), rest=g.items.filter(l=>l.lat==null);
+    const seq=[]; let c=prev; const p=[...located];
+    while(p.length){ p.sort((a,b)=>dist(c,a)-dist(c,b)); const n=p.shift(); seq.push(n); c=n; }
+    g.items=seq.concat(rest); if(c!==prev) prev=c;
+  });
+  return ordered.concat(noloc);
+}
+
+/* ---------- RENDER ---------- */
+function liveListings(){ return listings.filter(l=>!(marks[l.mls]&&marks[l.mls].deleted)); }
+function matches(l){ const r=rec(l.mls); if(filter==="all")return true; if(filter==="keep")return r.keep; return r.status===filter; }
+
+function render(){
+  const root=document.getElementById("list"); root.innerHTML="";
+  const live=liveListings();
+  if(!live.length){ root.innerHTML='<p class="empty">No listings yet — upload a PDF above.</p>'; updateCounts(); return; }
+  const groups=buildGroups(live);
+  let n=0, any=false;
+  groups.forEach(g=>{
+    const items=g.items.filter(matches);
+    if(!items.length) return;
+    any=true; n++;
+    const sec=document.createElement("section");
+    sec.innerHTML=`<div class="hood"><span class="num">${String(n).padStart(2,"0")}</span>
+      <h2>${g.hood}</h2><span class="cnt">${items.length}${filter==="all"?"":" / "+g.items.length}</span></div>`;
+    items.forEach(l=>sec.appendChild(cardEl(l)));
+    root.appendChild(sec);
+  });
+  if(!any) root.innerHTML='<p class="empty">Nothing matches this filter.</p>';
+  updateCounts();
+}
+
+function cardEl(l){
+  const r=rec(l.mls), ti=typeInfo(l.type);
+  const el=document.createElement("div");
+  el.className="card"+(r.status==="seen"?" seen":"")+(r.status==="pass"?" pass":"");
+  const ohHTML=l.oh?`<span class="oh${l.eve?" eve":""}">${l.oh}${l.eve?" — evening":""}</span> &nbsp; `:"";
+  const flags=[];
+  if(l.noOH) flags.push("no OH time — call first");
+  if(l.dbl) flags.push("dbl-listed");
+  const flagHTML=flags.length?`<span class="flag">⚠ ${flags.join(" · ")}</span>`:"";
+  const subExtra=[`YB ${l.yb}`, l.lot?l.lot.toLocaleString()+" lot":(l.hoa?"HOA $"+l.hoa.toLocaleString():""), "DOM "+l.dom].filter(Boolean).join(" · ");
+  const subBits=[subExtra,flagHTML].filter(Boolean).join(" &nbsp; ");
+  el.innerHTML=`
+    <div class="stamp s-seen">SEEN</div><div class="stamp s-pass">PASS</div>
+    <div class="row1">
+      <div class="addr">${l.addr}</div>
+      <div class="price">${usd(l.price)}</div>
+    </div>
+    <div class="meta"><span class="type ${ti.cls}">${ti.label}</span>${l.br} bd · ${l.ba} ba · ${l.sqft.toLocaleString()} sf · $${l.ppsf}/sf</div>
+    <div class="sub">${ohHTML}MLS ${l.mls} · ${subBits}</div>
+    <div class="ctrls">
+      <div class="seg" role="group">
+        <button class="b-tosee" data-st="tosee" aria-pressed="${r.status==="tosee"}">To see</button>
+        <button class="b-seen" data-st="seen" aria-pressed="${r.status==="seen"}">Seen</button>
+        <button class="b-pass" data-st="pass" aria-pressed="${r.status==="pass"}">Pass</button>
+      </div>
+      <button class="star ${r.keep?"on":""}" title="Keep">${r.keep?"★":"☆"}</button>
+      <a class="link" href="${mapURL(l)}" target="_blank" rel="noopener">Navigate</a>
+      <a class="link" href="${mlsURL(l)}" target="_blank" rel="noopener">Find listing</a>
+      <button class="del">Delete</button>
+    </div>
+    <div class="note"><textarea placeholder="Notes…">${(r.note||"").replace(/</g,"&lt;")}</textarea></div>`;
+
+  el.querySelectorAll(".seg button").forEach(b=>b.addEventListener("click",()=>{ r.status=b.dataset.st; saveMarks(); render(); }));
+  el.querySelector(".star").addEventListener("click",()=>{ r.keep=!r.keep; saveMarks(); render(); });
+  el.querySelector(".del").addEventListener("click",()=>deleteListing(l));
+  const ta=el.querySelector("textarea"); autoGrow(ta); let t;
+  ta.addEventListener("input",()=>{ autoGrow(ta); clearTimeout(t); t=setTimeout(()=>{ r.note=ta.value; saveMarks(); },350); });
+  ta.addEventListener("blur",()=>{ r.note=ta.value; saveMarks(); });
+  return el;
+}
+function autoGrow(ta){ ta.style.height="auto"; ta.style.height=ta.scrollHeight+"px"; }
+
+function updateCounts(){
+  const live=liveListings(); let a=0,s=0,k=0,p=0;
+  live.forEach(l=>{const r=rec(l.mls); if(r.keep)k++; if(r.status==="seen")s++; else if(r.status==="pass")p++; else a++;});
+  c_tosee.textContent=a; c_seen.textContent=s; c_keep.textContent=k; c_pass.textContent=p;
+}
+
+/* ---------- delete + undo ---------- */
+let lastDeleted=null,toastT;
+function deleteListing(l){ const r=rec(l.mls); r.deleted=true; lastDeleted=l.mls; saveMarks(); render(); showToast("Removed "+l.addr); }
+function showToast(msg){ toastMsg.textContent=msg; toast.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>toast.classList.remove("show"),5000); }
+toastUndo.addEventListener("click",()=>{ if(lastDeleted){ rec(lastDeleted).deleted=false; lastDeleted=null; saveMarks(); render(); } toast.classList.remove("show"); });
+
+/* ---------- filters + sort ---------- */
+filters.addEventListener("click",e=>{ const b=e.target.closest(".fchip"); if(!b)return;
+  filter=b.dataset.f; [...filters.children].forEach(c=>c.setAttribute("aria-pressed",c===b)); render(); });
+sorts.addEventListener("click",e=>{ const b=e.target.closest(".fchip"); if(!b)return;
+  sortMode=b.dataset.s; [...sorts.children].forEach(c=>c.setAttribute("aria-pressed",c===b)); render(); });
+
+/* ---------- copy summary ---------- */
+copyBtn.addEventListener("click",()=>{
+  const live=liveListings(); let out="OPEN HOUSE CARAVAN"+(meta.label?" — "+meta.label:"")+"\n\n";
+  const keep=live.filter(l=>rec(l.mls).keep);
+  const seen=live.filter(l=>rec(l.mls).status==="seen"&&!rec(l.mls).keep);
+  const line=l=>{const r=rec(l.mls);return `• ${l.addr} — ${usd(l.price)} (${typeInfo(l.type).key})${r.note?"\n   "+r.note:""}`;};
+  if(keep.length) out+="★ KEEP\n"+keep.map(line).join("\n")+"\n\n";
+  if(seen.length) out+="SEEN\n"+seen.map(line).join("\n")+"\n\n";
+  if(!keep.length&&!seen.length) out+="(No kept or seen listings yet.)";
+  navigator.clipboard.writeText(out.trim()).then(()=>showToast("Summary copied")).catch(()=>showToast("Copy failed"));
+});
+
+/* ---------- reset (current caravan only) ---------- */
+resetBtn.addEventListener("click",()=>{
+  if(!confirm("Clear this caravan's listings, statuses, notes and stars on this device?")) return;
+  listings=[]; meta={}; marks={}; saveData(); saveMarks();
+  filter="all"; [...filters.children].forEach(c=>c.setAttribute("aria-pressed",c.dataset.f==="all"));
+  document.getElementById("dateline").textContent="Upload a TheMLS one-line PDF to begin.";
+  render(); showToast("Caravan reset");
+});
+
+/* ---------- settings ---------- */
+settingsBtn.addEventListener("click",()=>{ showSetup(true); });
+
+/* ---------- upload flow ---------- */
+const drop=document.getElementById("drop"), fileInput=document.getElementById("file");
+drop.addEventListener("click",()=>fileInput.click());
+fileInput.addEventListener("change",e=>{ if(e.target.files[0]) handleFile(e.target.files[0]); });
+["dragover","dragenter"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("over");}));
+["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("over");}));
+drop.addEventListener("drop",e=>{ const f=e.dataTransfer.files[0]; if(f&&f.type==="application/pdf") handleFile(f); });
+
+function showProgress(msg){ const p=document.getElementById("progress"); p.textContent=msg; p.classList.toggle("show",!!msg); }
+
+async function handleFile(file){
+  try{
+    showProgress("Reading PDF…");
+    const buf=await file.arrayBuffer();
+    const text=await pdfToText(buf);
+    const parsed=parseListings(text);
+    if(!parsed.length){ showProgress(""); alert("Couldn't find any listings in that PDF. Is it a TheMLS one-line open-house export?"); return; }
+    listings=parsed;
+    const dates=parsed.map(l=>l.date).filter(Boolean).sort();
+    const d=dates.length?dates[Math.floor(dates.length/2)]:"";
+    meta={label:d?("week of "+weekOf(d)):"", date:d};
+    document.getElementById("dateline").textContent=(d?("Mon "+d+" · "):"")+parsed.length+" properties";
+    saveData(); render();
+    showProgress("Geocoding 0/"+parsed.length+"…");
+    await geocodeAll();
+    showProgress(""); render();
+    showToast(parsed.length+" listings loaded");
+  }catch(err){ showProgress(""); alert(err.message||"Something went wrong reading that PDF."); }
+}
+function weekOf(mmddyyyy){ // Monday of that week, returned MM/DD
+  const [m,d,y]=mmddyyyy.split("/").map(Number); const dt=new Date(y,m-1,d);
+  const day=dt.getDay(); const diff=(day===0?-6:1)-day; dt.setDate(dt.getDate()+diff);
+  return String(dt.getMonth()+1).padStart(2,"0")+"/"+String(dt.getDate()).padStart(2,"0");
+}
+
+/* ---------- setup screen ---------- */
+function showSetup(prefill){
+  document.getElementById("app").classList.add("hidden");
+  const s=document.getElementById("setup"); s.classList.remove("hidden");
+  if(prefill&&cfg){ document.getElementById("s-key").value=cfg.key||""; document.getElementById("s-start").value=cfg.start||""; }
+}
+function showApp(){ document.getElementById("setup").classList.add("hidden"); document.getElementById("app").classList.remove("hidden"); }
+document.getElementById("s-save").addEventListener("click",()=>{
+  const key=document.getElementById("s-key").value.trim();
+  const start=document.getElementById("s-start").value.trim()||"Highland Park, Los Angeles, CA";
+  if(!key){ alert("Paste your Google Maps API key first."); return; }
+  const changedKey=!cfg||cfg.key!==key, changedStart=!cfg||cfg.start!==start;
+  cfg={key,start}; setJSON(CFG_KEY,cfg); gmapsReady=null;
+  showApp();
+  if((changedStart)&&listings.length){ // re-geocode start + re-route
+    (async()=>{ showProgress("Recomputing route…"); await geocodeAll(); showProgress(""); render(); })();
+  } else render();
+});
+
+/* ---------- boot ---------- */
+if(!cfg){ showSetup(false); } else { showApp(); if(meta&&meta.date) document.getElementById("dateline").textContent=("Mon "+meta.date+" · ")+listings.length+" properties"; render(); }
+</script>
+</body>
+</html>
