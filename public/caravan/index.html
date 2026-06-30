@@ -157,6 +157,16 @@
   <button id="s-save">Save & continue</button>
 </section>
 
+<!-- AUTH -->
+<section class="setup hidden" id="auth">
+  <h1>Sign in</h1>
+  <p>Enter your email and we'll send a one-tap sign-in link. Your caravan and notes then sync across every device you sign in on.</p>
+  <label for="a-email">Email</label>
+  <input id="a-email" type="email" placeholder="you@email.com" autocomplete="email" spellcheck="false">
+  <button id="a-send">Send sign-in link</button>
+  <div class="hint" id="a-msg"></div>
+</section>
+
 <!-- APP -->
 <div class="wrap hidden" id="app">
   <header class="top">
@@ -196,6 +206,7 @@
         <button class="btn" id="copyBtn">Copy summary</button>
         <button class="btn" id="settingsBtn">Settings</button>
         <button class="btn" id="resetBtn">Reset</button>
+        <button class="btn" id="signoutBtn">Sign out</button>
       </div>
     </div>
   </div>
@@ -211,6 +222,7 @@
 <div class="toast" id="toast"><span id="toastMsg"></span><button id="toastUndo">Undo</button></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 "use strict";
 pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
@@ -221,6 +233,14 @@ const getJSON=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d;}catch(e
 const setJSON=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}};
 
 const GMAPS_KEY="AIzaSyC04hFQOs6pX1Wkh7_cotUg092DfwSdi5Y";
+
+/* ---- Supabase (cloud sync). Falls back to local-only until configured. ---- */
+const SUPABASE_URL="https://lhdooezylaliyhbrprps.supabase.co";
+const SUPABASE_ANON="sb_publishable_rRCYJRuB9ub3Ltxg-1UGaQ_BwjwWFgR";
+const CLOUD=/^https:\/\/.+\.supabase\.co\/?$/.test(SUPABASE_URL);
+const sb=CLOUD?supabase.createClient(SUPABASE_URL,SUPABASE_ANON):null;
+let session=null;
+
 let cfg=getJSON(CFG_KEY,null) || {key:GMAPS_KEY, start:"Highland Park, Los Angeles, CA"};
 cfg.key=GMAPS_KEY; setJSON(CFG_KEY,cfg);
 let marks=getJSON(MARK_KEY,{});      // { mls: {status,keep,note,deleted} }
@@ -237,6 +257,54 @@ const mlsURL=l=>"https://www.google.com/search?q="+enc(l.mls+" "+l.addr+" Los An
 const rec=mls=>{ if(!marks[mls]) marks[mls]={status:"tosee",note:"",keep:false,deleted:false}; return marks[mls]; };
 const saveMarks=()=>setJSON(MARK_KEY,marks);
 const saveData=()=>setJSON(DATA_KEY,{listings,meta});
+
+/* ---------- cloud sync ---------- */
+async function persistNote(mls){
+  saveMarks();
+  if(!CLOUD||!session) return;
+  const r=rec(mls);
+  try{ await sb.from("notes").upsert({mls,status:r.status,keep:r.keep,note:r.note,deleted:r.deleted,updated_at:new Date().toISOString()}); }
+  catch(e){ console.warn("note sync",e); }
+}
+async function persistListings(){
+  saveData();
+  if(!CLOUD||!session||!meta.week) return;
+  try{
+    await sb.from("listings").delete().eq("week_of",meta.week);
+    const rows=listings.map(l=>({week_of:meta.week,mls:l.mls,data:l}));
+    if(rows.length) await sb.from("listings").insert(rows);
+  }catch(e){ console.warn("listings sync",e); }
+}
+async function loadFromCloud(){
+  if(!CLOUD||!session) return;
+  try{
+    const {data:nrows}=await sb.from("notes").select("*");
+    marks={}; (nrows||[]).forEach(r=>{marks[r.mls]={status:r.status||"tosee",keep:!!r.keep,note:r.note||"",deleted:!!r.deleted};});
+    setJSON(MARK_KEY,marks);
+    const {data:wk}=await sb.from("listings").select("week_of").order("week_of",{ascending:false}).limit(1);
+    if(wk&&wk.length){
+      const w=wk[0].week_of;
+      const {data:lrows}=await sb.from("listings").select("data").eq("week_of",w);
+      listings=(lrows||[]).map(r=>r.data);
+      listings.forEach(l=>{ if(l.lat!=null) l.hood=assignHood(l.lat,l.lng,l.ghood||l.hood); });
+      meta={week:w,date:(listings[0]&&listings[0].date)||"",label:"week of "+fmtWeek(w),start:meta.start};
+    } else { listings=[]; meta={start:meta.start}; }
+    setJSON(DATA_KEY,{listings,meta});
+  }catch(e){ console.warn("load",e); }
+}
+async function ensureStart(){
+  await loadGoogle();
+  const geocoder=new google.maps.Geocoder();
+  const startKey="__start::"+cfg.start.toLowerCase();
+  if(!geoCache[startKey]){ const g=await geocodeOne(geocoder,cfg.start); if(g.status==="OK"){geoCache[startKey]=g;setJSON(GEO_KEY,geoCache);} }
+  meta.start=geoCache[startKey]||null;
+}
+function weekISO(mmddyyyy){
+  const [m,d,y]=mmddyyyy.split("/").map(Number); const dt=new Date(y,m-1,d);
+  const day=dt.getDay(); dt.setDate(dt.getDate()+((day===0?-6:1)-day));
+  return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");
+}
+function fmtWeek(iso){ const p=String(iso).split("-"); return p[1]+"/"+p[2]; }
 const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
 
 /* ---------- neighborhood snapping ----------
@@ -472,12 +540,12 @@ function cardEl(l){
     </div>
     <div class="note"><textarea placeholder="Notes…">${(r.note||"").replace(/</g,"&lt;")}</textarea></div>`;
 
-  el.querySelectorAll(".seg button").forEach(b=>b.addEventListener("click",()=>{ r.status=b.dataset.st; saveMarks(); render(); }));
-  el.querySelector(".star").addEventListener("click",()=>{ r.keep=!r.keep; saveMarks(); render(); });
+  el.querySelectorAll(".seg button").forEach(b=>b.addEventListener("click",()=>{ r.status=b.dataset.st; persistNote(l.mls); render(); }));
+  el.querySelector(".star").addEventListener("click",()=>{ r.keep=!r.keep; persistNote(l.mls); render(); });
   el.querySelector(".del").addEventListener("click",()=>deleteListing(l));
   const ta=el.querySelector("textarea"); autoGrow(ta); let t;
-  ta.addEventListener("input",()=>{ autoGrow(ta); clearTimeout(t); t=setTimeout(()=>{ r.note=ta.value; saveMarks(); },350); });
-  ta.addEventListener("blur",()=>{ r.note=ta.value; saveMarks(); });
+  ta.addEventListener("input",()=>{ autoGrow(ta); clearTimeout(t); t=setTimeout(()=>{ r.note=ta.value; persistNote(l.mls); },400); });
+  ta.addEventListener("blur",()=>{ r.note=ta.value; persistNote(l.mls); });
   return el;
 }
 function autoGrow(ta){ ta.style.height="auto"; ta.style.height=ta.scrollHeight+"px"; }
@@ -493,9 +561,9 @@ function updateCounts(){
 
 /* ---------- delete + undo ---------- */
 let lastDeleted=null,toastT;
-function deleteListing(l){ const r=rec(l.mls); r.deleted=true; lastDeleted=l.mls; saveMarks(); render(); showToast("Removed "+l.addr); }
+function deleteListing(l){ const r=rec(l.mls); r.deleted=true; lastDeleted=l.mls; persistNote(l.mls); render(); showToast("Removed "+l.addr); }
 function showToast(msg){ toastMsg.textContent=msg; toast.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>toast.classList.remove("show"),5000); }
-toastUndo.addEventListener("click",()=>{ if(lastDeleted){ rec(lastDeleted).deleted=false; lastDeleted=null; saveMarks(); render(); } toast.classList.remove("show"); });
+toastUndo.addEventListener("click",()=>{ if(lastDeleted){ rec(lastDeleted).deleted=false; persistNote(lastDeleted); lastDeleted=null; render(); } toast.classList.remove("show"); });
 
 /* ---------- filters + sort ---------- */
 filters.addEventListener("click",e=>{ const b=e.target.closest(".fchip"); if(!b)return;
@@ -515,17 +583,19 @@ copyBtn.addEventListener("click",()=>{
   navigator.clipboard.writeText(out.trim()).then(()=>showToast("Summary copied")).catch(()=>showToast("Copy failed"));
 });
 
-/* ---------- reset (current caravan only) ---------- */
-resetBtn.addEventListener("click",()=>{
-  if(!confirm("Clear this caravan's listings, statuses, notes and stars on this device?")) return;
-  listings=[]; meta={}; marks={}; saveData(); saveMarks();
+/* ---------- reset (current caravan only — keeps notes/stars) ---------- */
+resetBtn.addEventListener("click",async()=>{
+  if(!confirm("Clear the current caravan's listings? Your notes & stars are kept.")) return;
+  if(CLOUD&&session&&meta.week){ try{ await sb.from("listings").delete().eq("week_of",meta.week); }catch(e){console.warn(e);} }
+  const st=meta.start; listings=[]; meta={start:st}; saveData();
   filter="all"; [...filters.children].forEach(c=>c.setAttribute("aria-pressed",c.dataset.f==="all"));
   document.getElementById("dateline").textContent="Upload a TheMLS one-line PDF to begin.";
-  render(); showToast("Caravan reset");
+  render(); showToast("Caravan cleared");
 });
 
-/* ---------- settings ---------- */
+/* ---------- settings + sign out ---------- */
 settingsBtn.addEventListener("click",()=>{ showSetup(true); });
+document.getElementById("signoutBtn").addEventListener("click",async()=>{ if(CLOUD&&sb){ await sb.auth.signOut(); } });
 
 /* ---------- upload flow ---------- */
 const drop=document.getElementById("drop"), fileInput=document.getElementById("file");
@@ -547,11 +617,12 @@ async function handleFile(file){
     listings=parsed;
     const dates=parsed.map(l=>l.date).filter(Boolean).sort();
     const d=dates.length?dates[Math.floor(dates.length/2)]:"";
-    meta={label:d?("week of "+weekOf(d)):"", date:d};
+    meta={label:d?("week of "+weekOf(d)):"", date:d, week:d?weekISO(d):null, start:meta.start};
     document.getElementById("dateline").textContent=(d?("Mon "+d+" · "):"")+parsed.length+" properties";
     saveData(); render();
     showProgress("Geocoding 0/"+parsed.length+"…");
     await geocodeAll();
+    await persistListings();
     showProgress(""); render();
     showToast(parsed.length+" listings loaded");
   }catch(err){ showProgress(""); alert(err.message||"Something went wrong reading that PDF."); }
@@ -579,11 +650,39 @@ document.getElementById("s-save").addEventListener("click",()=>{
   } else render();
 });
 
+/* ---------- auth gate ---------- */
+function showAuth(){ document.getElementById("setup").classList.add("hidden"); document.getElementById("app").classList.add("hidden"); document.getElementById("auth").classList.remove("hidden"); }
+function setDateline(){ if(meta&&meta.date) document.getElementById("dateline").textContent=("Mon "+meta.date+" · ")+listings.length+" properties"; }
+
+function runLocal(){
+  document.getElementById("signoutBtn").classList.add("hidden");
+  showApp();
+  listings.forEach(l=>{ if(l.lat!=null) l.hood=assignHood(l.lat,l.lng,l.ghood||l.hood); });
+  setDateline(); render();
+}
+async function onSignedIn(){
+  document.getElementById("auth").classList.add("hidden"); showApp();
+  showProgress("Syncing…");
+  await loadFromCloud();
+  if(listings.length){ try{ await ensureStart(); }catch(e){} }
+  showProgress(""); setDateline(); render();
+}
+async function initAuth(){
+  if(!CLOUD){ runLocal(); return; }
+  const {data}=await sb.auth.getSession(); session=data.session;
+  sb.auth.onAuthStateChange((_e,s)=>{ const had=!!session; session=s; if(s&&!had) onSignedIn(); else if(!s) showAuth(); });
+  if(session) onSignedIn(); else showAuth();
+}
+document.getElementById("a-send").addEventListener("click",async()=>{
+  const email=document.getElementById("a-email").value.trim(), msg=document.getElementById("a-msg");
+  if(!email){ msg.textContent="Enter your email."; return; }
+  msg.textContent="Sending…";
+  const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+"/caravan"}});
+  msg.textContent=error?("Error: "+error.message):"Check your email for the sign-in link.";
+});
+
 /* ---------- boot ---------- */
-showApp();
-listings.forEach(l=>{ if(l.lat!=null) l.hood=assignHood(l.lat,l.lng,l.ghood||l.hood); }); // re-snap from cached coords
-if(meta&&meta.date) document.getElementById("dateline").textContent=("Mon "+meta.date+" · ")+listings.length+" properties";
-render();
+initAuth();
 </script>
 </body>
 </html>
