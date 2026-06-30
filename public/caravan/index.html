@@ -286,7 +286,7 @@ async function loadFromCloud(){
       const w=wk[0].week_of;
       const {data:lrows}=await sb.from("listings").select("data").eq("week_of",w);
       listings=(lrows||[]).map(r=>r.data);
-      listings.forEach(l=>{ if(l.lat!=null) l.hood=assignHood(l.lat,l.lng,l.ghood||l.hood); });
+      listings.forEach(l=>{ if(l.lat!=null) l.hood=assignHood(l.lat,l.lng,l.area||l.ghood||l.hood); });
       meta={week:w,date:(listings[0]&&listings[0].date)||"",label:"week of "+fmtWeek(w),start:meta.start};
     } else { listings=[]; meta={start:meta.start}; }
     setJSON(DATA_KEY,{listings,meta});
@@ -367,6 +367,51 @@ function fmtTime(t){ return (t||"").replace(/(AM|PM)/g,"").trim(); }
 function isEve(t1){ const m=/(\d+):\d+(AM|PM)/.exec(t1||""); if(!m) return false; let h=+m[1]; if(m[2]==="PM"&&h!==12)h+=12; return h>=16; }
 
 function parseListings(text){
+  // Auto-detect: gallery report (label layout) vs one-line export (table).
+  if(/Open House Gallery Report/i.test(text) || /\bP type\b/.test(text)) return parseGallery(text);
+  return parseOneLine(text);
+}
+
+function parseGallery(text){
+  // Label layout: each record starts at "LP $<price> MLS#…"; fields anchored by label.
+  const chunks=text.split(/(?=LP \$\s*[\d,]+\s*MLS#)/).filter(c=>/MLS#/.test(c));
+  const out=[]; const seen=new Set();
+  chunks.forEach((c,i)=>{
+    const mPrice=/LP \$\s*([\d,]+)/.exec(c);
+    const mMls=/MLS#\s*([A-Za-z0-9\-]+)/.exec(c);
+    if(!mPrice||!mMls) return;
+    const mls=mMls[1];
+    if(seen.has(mls)) return; seen.add(mls);
+    const price=parseInt(mPrice[1].replace(/,/g,""))||0;
+    const ptype=((/P type\s+([A-Za-z\/]+)/.exec(c)||[])[1]||"SFR").toUpperCase();
+    const mBB=/Br\/Ba\s+(\d+)\/(\d+(?:\.\d+)?)/.exec(c);
+    const br=mBB?+mBB[1]:null, ba=mBB?parseFloat(mBB[2]):null;
+    const sqft=parseInt(((/Apx sf\s*([\d,]+)/.exec(c)||[])[1]||"0").replace(/,/g,""))||0;
+    const dom=+((/DOM\s+(\d+)/.exec(c)||[])[1]||0);
+    const lot=parseInt(((/LSZ\s+(\d+)/.exec(c)||[])[1]||"0").replace(/,/g,""))||0;
+    const mDate=/Date\s+(\d{2}\/\d{2}\/\d{4})\s+([\d:]+\s*[APap][Mm])\s*-\s*([\d:]+\s*[APap][Mm])/.exec(c);
+    const date=mDate?mDate[1]:"";
+    const t1=mDate?mDate[2].replace(/\s+/g,"").toUpperCase():"";
+    const t2=mDate?mDate[3].replace(/\s+/g,"").toUpperCase():"";
+    const mAddr=/Addr\s+(.+?)\s+Area\b/.exec(c);
+    const addr=mAddr?mAddr[1].trim():"(unknown address)";
+    const mArea=/Area\s+(.+?)\s*\((\d+)\)/.exec(c);
+    const area=mArea?mArea[1].trim():"";
+    const ar=mArea?mArea[2]:"";
+    let city="Los Angeles"; if(/alhambra/i.test(area)) city="Alhambra";
+    out.push({
+      seq:i+1, mls, ar, addr, city, area,
+      type:ptype, oh:(t1&&t2)?(fmtTime(t1)+"–"+fmtTime(t2)):"", eve:isEve(t1),
+      date, br, ba, sqft, ppsf:sqft?Math.round(price/sqft):0, price,
+      hoa:0, lot, yb:null, dom, noOH:!(t1&&t2)
+    });
+  });
+  const byAddr={}; out.forEach(l=>{const k=l.addr.toLowerCase().replace(/\s+/g," ");(byAddr[k]??=[]).push(l);});
+  Object.values(byAddr).forEach(g=>{ if(g.length>1) g.forEach(l=>l.dbl=true); });
+  return out;
+}
+
+function parseOneLine(text){
   // # date (t1- t2) MLS AR TYPE S Address+City BR BA (F H T Q) SqFt $ppsf $price [$hod] [lot] YB DOM
   const re=/(\d{1,3})\s+(?:(\d{2}\/\d{2}\/\d{4})\s*\(\s*([0-9:APM]+)\s*-\s*([0-9:APM]+)\s*\)\s*)?(P\d-\s*\d+[A-Z0-9]*|\d{7,9})\s+(\d+)\s+(C\/C|SFR|INC|2\/4)\s+([A-Z])\s+(.+?)\s+(\d+)\s+(\d+\.\d{2})\s+\(\s*\d+\s+\d+\s+\d+\s+\d+\s*\)\s+(\d+)\s+\$([\d,]+\.\d{2})\s+\$([\d,]+)\s*(?:\$([\d,]+\.\d{2}))?\s*(\d+)?\s+(\d{4})\s+(\d+)/g;
   const out=[]; let m;
@@ -434,13 +479,13 @@ async function geocodeAll(){
   for(const l of listings){
     const key=(l.addr+" "+l.city+" CA").toLowerCase().replace(/\s+/g," ");
     if(geoCache[key]&&geoCache[key].status==="OK"){
-      const c=geoCache[key]; l.lat=c.lat; l.lng=c.lng; l.ghood=c.hood; l.hood=assignHood(c.lat,c.lng,c.hood);
+      const c=geoCache[key]; l.lat=c.lat; l.lng=c.lng; l.ghood=c.hood; l.hood=assignHood(c.lat,c.lng,l.area||c.hood);
     } else {
       let g, tries=0;
       do{ g=await geocodeOne(geocoder,l.addr+", "+l.city+", CA"); if(g.status==="OVER_QUERY_LIMIT"){await sleep(800*(++tries));} }
       while(g.status==="OVER_QUERY_LIMIT"&&tries<4);
-      if(g.status==="OK"){ geoCache[key]=g; l.lat=g.lat; l.lng=g.lng; l.ghood=g.hood; l.hood=assignHood(g.lat,g.lng,g.hood); }
-      else { l.hood="Unmapped"; }
+      if(g.status==="OK"){ geoCache[key]=g; l.lat=g.lat; l.lng=g.lng; l.ghood=g.hood; l.hood=assignHood(g.lat,g.lng,l.area||g.hood); }
+      else { l.hood=l.area||"Unmapped"; }
       await sleep(110);
     }
     done++; showProgress(`Geocoding ${done}/${listings.length}…`);
@@ -517,15 +562,18 @@ function cardEl(l){
   if(l.noOH) flags.push("no OH time — call first");
   if(l.dbl) flags.push("dbl-listed");
   const flagHTML=flags.length?`<span class="flag">⚠ ${flags.join(" · ")}</span>`:"";
-  const subExtra=[`YB ${l.yb}`, l.lot?l.lot.toLocaleString()+" lot":(l.hoa?"HOA $"+l.hoa.toLocaleString():""), "DOM "+l.dom].filter(Boolean).join(" · ");
+  const subExtra=[l.yb?("YB "+l.yb):"", l.lot?l.lot.toLocaleString()+" lot":(l.hoa?"HOA $"+l.hoa.toLocaleString():""), "DOM "+l.dom].filter(Boolean).join(" · ");
   const subBits=[subExtra,flagHTML].filter(Boolean).join(" &nbsp; ");
+  const bbStr=(l.br!=null&&l.ba!=null)?`${l.br} bd · ${l.ba} ba · `:"";
+  const sqftStr=l.sqft?l.sqft.toLocaleString()+" sf":"";
+  const ppsfStr=l.ppsf?` · $${l.ppsf}/sf`:"";
   el.innerHTML=`
     <div class="stamp s-seen">SEEN</div><div class="stamp s-pass">PASS</div>
     <div class="row1">
       <div class="addr">${l.addr}</div>
       <div class="price">${usd(l.price)}</div>
     </div>
-    <div class="meta"><span class="type ${ti.cls}">${ti.label}</span>${l.br} bd · ${l.ba} ba · ${l.sqft.toLocaleString()} sf · $${l.ppsf}/sf</div>
+    <div class="meta"><span class="type ${ti.cls}">${ti.label}</span>${bbStr}${sqftStr}${ppsfStr}</div>
     <div class="sub">${ohHTML}MLS ${l.mls} · ${subBits}</div>
     <div class="ctrls">
       <div class="seg" role="group">
@@ -657,7 +705,7 @@ function setDateline(){ if(meta&&meta.date) document.getElementById("dateline").
 function runLocal(){
   document.getElementById("signoutBtn").classList.add("hidden");
   showApp();
-  listings.forEach(l=>{ if(l.lat!=null) l.hood=assignHood(l.lat,l.lng,l.ghood||l.hood); });
+  listings.forEach(l=>{ if(l.lat!=null) l.hood=assignHood(l.lat,l.lng,l.area||l.ghood||l.hood); });
   setDateline(); render();
 }
 async function onSignedIn(){
