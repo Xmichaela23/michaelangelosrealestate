@@ -451,7 +451,10 @@ function autoGrow(ta){ ta.style.height="auto"; ta.style.height=ta.scrollHeight+"
 function updateCounts(){
   const live=liveListings(); let a=0,s=0,k=0,p=0;
   live.forEach(l=>{const r=rec(l.mls); if(r.keep)k++; if(r.status==="seen")s++; else if(r.status==="pass")p++; else a++;});
-  c_tosee.textContent=a; c_seen.textContent=s; c_keep.textContent=k; c_pass.textContent=p;
+  document.getElementById("c-tosee").textContent=a;
+  document.getElementById("c-seen").textContent=s;
+  document.getElementById("c-keep").textContent=k;
+  document.getElementById("c-pass").textContent=p;
 }
 
 /* ---------- delete + undo ---------- */
