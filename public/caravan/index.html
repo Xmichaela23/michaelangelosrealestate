@@ -5,17 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Caravan — Open House Log</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
     --paper:#fcfcfd; --card:#ffffff; --ink:#1a1a18; --mute:#8a8a8a; --mute2:#6e6e6e;
     --line:#eaeaea; --accent:#1f4e46; --seen:#3f6b4a; --pass:#a84a3c; --keep:#b9892f;
     --shadow:0 1px 0 rgba(26,26,24,.03);
-    --serif:"Newsreader",Georgia,serif;
-    --mono:"Spline Sans Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
-    --sans:system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+    --serif:"Helvetica Neue",Helvetica,Arial,sans-serif;
+    --mono:"Helvetica Neue",Helvetica,Arial,sans-serif;
+    --sans:"Helvetica Neue",Helvetica,Arial,sans-serif;
   }
   *{box-sizing:border-box}
   html{-webkit-text-size-adjust:100%}
@@ -242,6 +239,43 @@ const saveMarks=()=>setJSON(MARK_KEY,marks);
 const saveData=()=>setJSON(DATA_KEY,{listings,meta});
 const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
 
+/* ---------- neighborhood snapping ----------
+   Google's geocoder labels LA neighborhoods inconsistently, so snap each
+   point to the nearest known center for stable, recognizable grouping. */
+const NB=[
+  {name:"Highland Park / Hermon",          lat:34.1130,lng:-118.1920},
+  {name:"Garvanza",                        lat:34.1205,lng:-118.1800},
+  {name:"Mount Washington",                lat:34.1010,lng:-118.2185},
+  {name:"Montecito Heights",               lat:34.0883,lng:-118.1976},
+  {name:"El Sereno",                       lat:34.0790,lng:-118.1745},
+  {name:"Glassell Park",                   lat:34.1136,lng:-118.2300},
+  {name:"Cypress Park",                    lat:34.0905,lng:-118.2257},
+  {name:"Eagle Rock",                      lat:34.1397,lng:-118.2120},
+  {name:"Lincoln Heights",                 lat:34.0700,lng:-118.2110},
+  {name:"Downtown LA",                     lat:34.0440,lng:-118.2480},
+  {name:"Boyle Heights",                   lat:34.0337,lng:-118.2099},
+  {name:"Historic Filipinotown / Westlake",lat:34.0620,lng:-118.2750},
+  {name:"Echo Park",                       lat:34.0782,lng:-118.2606},
+  {name:"Silver Lake",                     lat:34.0869,lng:-118.2702},
+  {name:"Atwater Village",                 lat:34.1183,lng:-118.2606},
+  {name:"East Hollywood",                  lat:34.0900,lng:-118.2940},
+  {name:"Los Feliz",                       lat:34.1080,lng:-118.2890}
+];
+const NB_SNAP_KM=3.0;
+function haversineKm(aLat,aLng,bLat,bLng){
+  const R=6371, toR=x=>x*Math.PI/180;
+  const dLa=toR(bLat-aLat), dLo=toR(bLng-aLng);
+  const s=Math.sin(dLa/2)**2+Math.cos(toR(aLat))*Math.cos(toR(bLat))*Math.sin(dLo/2)**2;
+  return 2*R*Math.asin(Math.sqrt(s));
+}
+function assignHood(lat,lng,fallback){
+  if(lat==null) return fallback||"Unmapped";
+  let best=null,bd=Infinity;
+  for(const n of NB){ const d=haversineKm(lat,lng,n.lat,n.lng); if(d<bd){bd=d;best=n;} }
+  if(best&&bd<=NB_SNAP_KM) return best.name;
+  return fallback||"Other";
+}
+
 /* ---------- PDF PARSING ---------- */
 async function pdfToText(buf){
   const doc=await pdfjsLib.getDocument({data:buf}).promise;
@@ -332,12 +366,12 @@ async function geocodeAll(){
   for(const l of listings){
     const key=(l.addr+" "+l.city+" CA").toLowerCase().replace(/\s+/g," ");
     if(geoCache[key]&&geoCache[key].status==="OK"){
-      Object.assign(l,{lat:geoCache[key].lat,lng:geoCache[key].lng,hood:geoCache[key].hood});
+      const c=geoCache[key]; l.lat=c.lat; l.lng=c.lng; l.ghood=c.hood; l.hood=assignHood(c.lat,c.lng,c.hood);
     } else {
       let g, tries=0;
       do{ g=await geocodeOne(geocoder,l.addr+", "+l.city+", CA"); if(g.status==="OVER_QUERY_LIMIT"){await sleep(800*(++tries));} }
       while(g.status==="OVER_QUERY_LIMIT"&&tries<4);
-      if(g.status==="OK"){ geoCache[key]=g; Object.assign(l,{lat:g.lat,lng:g.lng,hood:g.hood}); }
+      if(g.status==="OK"){ geoCache[key]=g; l.lat=g.lat; l.lng=g.lng; l.ghood=g.hood; l.hood=assignHood(g.lat,g.lng,g.hood); }
       else { l.hood="Unmapped"; }
       await sleep(110);
     }
@@ -547,6 +581,7 @@ document.getElementById("s-save").addEventListener("click",()=>{
 
 /* ---------- boot ---------- */
 showApp();
+listings.forEach(l=>{ if(l.lat!=null) l.hood=assignHood(l.lat,l.lng,l.ghood||l.hood); }); // re-snap from cached coords
 if(meta&&meta.date) document.getElementById("dateline").textContent=("Mon "+meta.date+" · ")+listings.length+" properties";
 render();
 </script>
